@@ -130,27 +130,46 @@ def process_queue():
             # Download
             out_tmpl = os.path.join(tmpdir, f"{vid}.%(ext)s")
             yt_url   = f"https://www.youtube.com/watch?v={vid}"
+            cookies_file = os.path.join(os.path.dirname(__file__), "cookies.txt")
             args = [
                 ytdlp, "-f", "bestvideo[ext=mp4]/bestvideo",
                 "--remux-video", "mp4",
                 "--no-playlist", "--no-write-subs", "--no-write-auto-subs",
                 "--no-embed-thumbnail", "--no-embed-metadata",
+                "--socket-timeout", "60",
+                "--retries", "5",
+                "--fragment-retries", "5",
+                "--extractor-retries", "3",
                 "--progress", "--newline",
                 "--progress-template",
                 "%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
-                "-o", out_tmpl, yt_url,
             ]
+            if os.path.exists(cookies_file):
+                args += ["--cookies", cookies_file]
+            args += ["-o", out_tmpl, yt_url]
+
             set_progress(vid, status="downloading", progress=0,
                          speed="", eta="calculating...", channel=channel)
 
             proc = subprocess.Popen(args, stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, text=True)
+            # Kill if stuck for more than 10 minutes with no progress
+            last_progress = [0, time.time()]
             for line in proc.stdout:
                 m = re.match(r"([\d.]+)%\s*\|\s*([\S ]+?)\s*\|\s*([\S]+)", line)
                 if m:
                     pct, spd, eta = m.groups()
-                    set_progress(vid, progress=float(pct),
+                    pct_f = float(pct)
+                    if pct_f > last_progress[0]:
+                        last_progress[0] = pct_f
+                        last_progress[1] = time.time()
+                    set_progress(vid, progress=pct_f,
                                  speed=spd.strip(), eta=eta.strip())
+                # Kill if no progress for 8 minutes
+                if time.time() - last_progress[1] > 480:
+                    proc.kill()
+                    set_progress(vid, status="error", error="Stuck — YouTube blocked this server IP. Upload cookies.txt to fix.")
+                    break
             proc.wait()
 
             if proc.returncode != 0:
@@ -185,6 +204,15 @@ def process_queue():
     worker_running = False
 
 # ── Routes ────────────────────────────────────────────────────────────
+@app.route("/api/cookies", methods=["POST"])
+def upload_cookies():
+    f = request.files.get("cookies")
+    if not f:
+        return jsonify({"error": "No file"}), 400
+    dest = os.path.join(os.path.dirname(__file__), "cookies.txt")
+    f.save(dest)
+    return jsonify({"ok": True, "message": "Cookies saved — downloads will now bypass YouTube restrictions"})
+
 @app.route("/")
 def index():
     return render_template("index.html")

@@ -82,6 +82,18 @@ body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
     <span id="status-text">Checking yt-dlp...</span>
   </div>
 
+  <!-- COOKIES UPLOAD -->
+  <div class="card" id="cookies-card">
+    <div class="card-title">Fix Stuck Downloads — Upload Cookies</div>
+    <div style="font-size:.8rem;color:#94a3b8;margin-bottom:10px">If downloads get stuck, YouTube is blocking this server. Upload your YouTube cookies to fix it.</div>
+    <div class="input-row">
+      <input type="file" id="cookies-file" accept=".txt" style="flex:1;background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;padding:10px;color:#e2e8f0;font-size:.85rem">
+      <button class="btn btn-purple" onclick="uploadCookies()">Upload</button>
+    </div>
+    <div class="hint">Install <b>Get cookies.txt LOCALLY</b> Chrome extension → open YouTube → export cookies → upload here</div>
+    <div id="cookies-status" style="margin-top:8px;font-size:.8rem;display:none"></div>
+  </div>
+
   <!-- CHANNEL INPUT -->
   <div class="card">
     <div class="card-title">YouTube Channel</div>
@@ -115,6 +127,19 @@ body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 
 <script>
 let videos = [], channelName = '', channelUrl = '', progress = {};
+
+async function uploadCookies() {
+  const f = document.getElementById('cookies-file').files[0];
+  if (!f) return alert('Select a cookies.txt file first');
+  const st = document.getElementById('cookies-status');
+  st.style.display = 'block'; st.style.color = '#94a3b8'; st.textContent = 'Uploading...';
+  const fd = new FormData(); fd.append('cookies', f);
+  try {
+    const r = await fetch('/api/cookies', {method:'POST', body:fd});
+    const d = await r.json();
+    st.style.color = '#34d399'; st.textContent = '✓ ' + d.message;
+  } catch(e) { st.style.color='#ef4444'; st.textContent='Error: '+e.message; }
+}
 
 // ── Status check ─────────────────────────────────────────────────────
 async function checkStatus() {
