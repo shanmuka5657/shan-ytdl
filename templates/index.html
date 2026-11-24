@@ -86,10 +86,10 @@ body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   <div class="card">
     <div class="card-title">YouTube Channel</div>
     <div class="input-row">
-      <input type="url" id="channel-url" placeholder="https://www.youtube.com/@ChannelName" autocomplete="off">
+      <input type="text" id="channel-url" placeholder="@ChannelName" autocomplete="off">
       <button class="btn btn-purple" id="scan-btn" onclick="scanChannel()">Scan</button>
     </div>
-    <div class="hint">Paste any YouTube channel URL — videos go to S3 under the channel name</div>
+    <div class="hint">Type channel name like <b>@ShanNet</b> — no need for full URL</div>
     <div id="scan-status" style="margin-top:10px;font-size:.8rem;color:#94a3b8;display:none"></div>
   </div>
 
@@ -140,8 +140,15 @@ checkStatus();
 
 // ── Scan channel ─────────────────────────────────────────────────────
 async function scanChannel() {
-  channelUrl = document.getElementById('channel-url').value.trim();
-  if (!channelUrl) return;
+  let raw = document.getElementById('channel-url').value.trim();
+  if (!raw) return;
+  // Accept @name, name, or full URL
+  if (!raw.startsWith('http')) {
+    const handle = raw.startsWith('@') ? raw : '@' + raw;
+    channelUrl = 'https://www.youtube.com/' + handle;
+  } else {
+    channelUrl = raw;
+  }
   const m = channelUrl.match(/@([^/?&#]+)/);
   channelName = m ? m[1] : (channelUrl.split('/').filter(Boolean).pop() || 'unknown');
 
