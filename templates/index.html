@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Shan YT Downloader</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+.topbar{background:#13131a;border-bottom:1px solid #2d2d3d;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#a855f7,#ec4899);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.topbar h1{font-size:1rem;font-weight:700}
+.topbar .s3tag{font-size:.72rem;background:#1e1e2e;border:1px solid #374151;border-radius:6px;padding:3px 8px;color:#64748b;margin-left:auto}
+.content{max-width:640px;margin:0 auto;padding:16px}
+
+/* STATUS BAR */
+.status-banner{background:#0f1922;border:1px solid #1e3a5f;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:#60a5fa;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.dot.red{background:#ef4444}
+
+/* SECTION */
+.card{background:#13131a;border:1px solid #2d2d3d;border-radius:14px;padding:16px;margin-bottom:14px}
+.card-title{font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+
+/* INPUT */
+.input-row{display:flex;gap:8px}
+.input-row input{flex:1;background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;padding:11px 13px;color:#e2e8f0;font-size:.9rem;outline:none;min-width:0}
+.input-row input:focus{border-color:#a855f7}
+.btn{border:none;border-radius:10px;padding:11px 16px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-purple{background:#7c3aed;color:#fff}
+.btn-green{background:#059669;color:#fff}
+.hint{font-size:.73rem;color:#475569;margin-top:7px}
+
+/* VIDEO LIST */
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.btn-sm{background:#1e1e2e;border:1px solid #374151;border-radius:7px;padding:7px 12px;color:#94a3b8;font-size:.78rem;cursor:pointer}
+.sel-count{font-size:.8rem;color:#475569;margin-left:auto}
+.vlist{display:flex;flex-direction:column;gap:7px}
+.vitem{background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;padding:11px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:border-color .15s}
+.vitem.sel{border-color:#7c3aed;background:#160f2a}
+.vitem.sel .vcheck{background:#7c3aed;border-color:#7c3aed}
+.vcheck{width:20px;height:20px;border-radius:5px;border:2px solid #374151;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.vcheck svg{display:none}
+.vitem.sel .vcheck svg{display:block}
+.vthumb{width:64px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#0a0a0f}
+.vinfo{flex:1;min-width:0}
+.vtitle{font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cbd5e1}
+.vmeta{font-size:.7rem;color:#475569;margin-top:3px}
+.vs{font-size:.7rem;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.vs.queued{background:#1e3a5f;color:#60a5fa}
+.vs.downloading{background:#1a2e1a;color:#4ade80}
+.vs.uploading{background:#2d1a3d;color:#c084fc}
+.vs.completed{background:#14291a;color:#34d399}
+.vs.error{background:#3b0d0d;color:#f87171}
+.prog-bg{background:#0a0a0f;border-radius:3px;height:3px;overflow:hidden;margin-top:5px}
+.prog-fill{background:linear-gradient(90deg,#7c3aed,#ec4899);height:100%;transition:width .4s;border-radius:3px}
+.prog-info{display:flex;justify-content:space-between;font-size:.65rem;color:#374151;margin-top:2px}
+.s3path{font-size:.68rem;color:#374151;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s3path b{color:#6d28d9}
+
+/* ACTIVE */
+.aitem{background:#1e1e2e;border-radius:9px;padding:10px 12px;margin-bottom:7px}
+.aitem-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.aid{font-size:.78rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">⬇</div>
+  <h1>Shan YT Downloader</h1>
+  <div class="s3tag" id="s3tag">checking...</div>
+</div>
+
+<div class="content">
+
+  <!-- STATUS -->
+  <div class="status-banner" id="status-banner">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Checking yt-dlp...</span>
+  </div>
+
+  <!-- CHANNEL INPUT -->
+  <div class="card">
+    <div class="card-title">YouTube Channel</div>
+    <div class="input-row">
+      <input type="url" id="channel-url" placeholder="https://www.youtube.com/@ChannelName" autocomplete="off">
+      <button class="btn btn-purple" id="scan-btn" onclick="scanChannel()">Scan</button>
+    </div>
+    <div class="hint">Paste any YouTube channel URL — videos go to S3 under the channel name</div>
+    <div id="scan-status" style="margin-top:10px;font-size:.8rem;color:#94a3b8;display:none"></div>
+  </div>
+
+  <!-- ACTIVE DOWNLOADS -->
+  <div class="card" id="active-card" style="display:none">
+    <div class="card-title">Active Downloads</div>
+    <div id="active-list"></div>
+  </div>
+
+  <!-- VIDEO LIST -->
+  <div class="card" id="video-card" style="display:none">
+    <div class="card-title" id="video-card-title">Videos</div>
+    <div class="actions">
+      <button class="btn-sm" onclick="selectAll()">All</button>
+      <button class="btn-sm" onclick="deselectAll()">None</button>
+      <span class="sel-count" id="sel-count">0 selected</span>
+      <button class="btn btn-green" id="dl-btn" disabled onclick="startDownload()" style="padding:7px 14px;font-size:.82rem">⬇ Download</button>
+    </div>
+    <div class="vlist" id="vlist"></div>
+  </div>
+
+</div>
+
+<script>
+let videos = [], channelName = '', channelUrl = '', progress = {};
+
+// ── Status check ─────────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const tag = document.getElementById('s3tag');
+    if (d.ytdlp) {
+      dot.className = 'dot';
+      txt.textContent = 'yt-dlp ready — paste a channel URL above to start';
+    } else {
+      dot.className = 'dot red';
+      txt.textContent = 'yt-dlp not found — install it: pip install yt-dlp';
+    }
+    tag.textContent = 'S3: ' + d.s3_bucket;
+  } catch(e) {
+    document.getElementById('status-text').textContent = 'Server not responding';
+  }
+}
+checkStatus();
+
+// ── Scan channel ─────────────────────────────────────────────────────
+async function scanChannel() {
+  channelUrl = document.getElementById('channel-url').value.trim();
+  if (!channelUrl) return;
+  const m = channelUrl.match(/@([^/?&#]+)/);
+  channelName = m ? m[1] : (channelUrl.split('/').filter(Boolean).pop() || 'unknown');
+
+  const btn = document.getElementById('scan-btn');
+  const st  = document.getElementById('scan-status');
+  btn.disabled = true; btn.textContent = '...';
+  st.style.display = 'block';
+  st.textContent = `Scanning @${channelName} — may take 30–60s…`;
+
+  try {
+    const r = await fetch('/api/channel', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({channel_url: channelUrl})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Scan failed');
+    videos = d.videos.map(v => ({...v, _sel: false}));
+    st.textContent = `Found ${videos.length} videos in @${channelName}`;
+    renderList();
+  } catch(e) {
+    st.style.color = '#ef4444';
+    st.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Scan';
+  }
+}
+
+// ── Video list ────────────────────────────────────────────────────────
+function renderList() {
+  const card  = document.getElementById('video-card');
+  const title = document.getElementById('video-card-title');
+  const list  = document.getElementById('vlist');
+  card.style.display = 'block';
+  title.textContent  = `${videos.length} videos — @${channelName}`;
+  list.innerHTML = '';
+  videos.forEach((v, i) => {
+    const p   = progress[v.id] || {};
+    const st  = p.status || 'pending';
+    const pct = p.progress || 0;
+    const active = ['queued','downloading','uploading','completed','error'].includes(st);
+    const s3key  = `youtube/${channelName}/${v.id}.mp4`;
+
+    let badge = '';
+    if (st === 'queued')      badge = `<span class="vs queued">Queued</span>`;
+    else if (st === 'downloading') badge = `<span class="vs downloading">${Math.round(pct)}%</span>`;
+    else if (st === 'uploading')   badge = `<span class="vs uploading">Uploading</span>`;
+    else if (st === 'completed')   badge = `<span class="vs completed">✓ Done</span>`;
+    else if (st === 'error')       badge = `<span class="vs error">Error</span>`;
+
+    const item = document.createElement('div');
+    item.className = `vitem${v._sel ? ' sel' : ''}`;
+    item.dataset.i = i;
+    item.innerHTML = `
+      <div class="vcheck"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <img class="vthumb" src="${v.thumbnail}" loading="lazy" onerror="this.style.display='none'">
+      <div class="vinfo">
+        <div class="vtitle">${v.title}</div>
+        <div class="vmeta">${v.duration || ''} · ${v.id}</div>
+        <div class="s3path">→ <b>youtube/${channelName}/</b>${v.id}.mp4</div>
+        ${active ? `<div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="prog-info"><span>${p.speed||''}</span><span>${p.eta||''}</span></div>` : ''}
+      </div>
+      ${badge}
+    `;
+    if (!active) item.addEventListener('click', () => toggleSel(i));
+    list.appendChild(item);
+  });
+  updateCount();
+}
+
+function toggleSel(i) {
+  videos[i]._sel = !videos[i]._sel;
+  const items = document.querySelectorAll('.vitem');
+  items[i].classList.toggle('sel', videos[i]._sel);
+  updateCount();
+}
+function selectAll()   { videos.forEach(v => { if (!['queued','downloading','uploading','completed'].includes((progress[v.id]||{}).status)) v._sel=true; }); renderList(); }
+function deselectAll() { videos.forEach(v => v._sel=false); renderList(); }
+function updateCount() {
+  const n = videos.filter(v=>v._sel).length;
+  document.getElementById('sel-count').textContent = n + ' selected';
+  document.getElementById('dl-btn').disabled = n === 0;
+}
+
+// ── Download ──────────────────────────────────────────────────────────
+async function startDownload() {
+  const sel = videos.filter(v=>v._sel).map(v=>v.id);
+  if (!sel.length) return;
+  const btn = document.getElementById('dl-btn');
+  btn.disabled=true; btn.textContent='Queuing…';
+  try {
+    await fetch('/api/download', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({video_ids:sel, channel_name:channelName, channel_url:channelUrl})
+    });
+    sel.forEach(id => { progress[id]={status:'queued',progress:0,eta:'in queue',channel:channelName}; });
+    videos.forEach(v => { if(sel.includes(v.id)) v._sel=false; });
+    renderList();
+    document.getElementById('active-card').style.display='block';
+    renderActive();
+  } catch(e) { alert('Error: '+e.message); }
+  finally { btn.textContent='⬇ Download'; updateCount(); }
+}
+
+// ── Active downloads ──────────────────────────────────────────────────
+function renderActive() {
+  const list = document.getElementById('active-list');
+  const active = Object.entries(progress).filter(([,v])=>['queued','downloading','uploading'].includes(v.status));
+  if (!active.length) { list.innerHTML='<div style="text-align:center;color:#374151;font-size:.82rem;padding:8px">No active downloads</div>'; return; }
+  list.innerHTML = active.map(([id,v]) => `
+    <div class="aitem">
+      <div class="aitem-top">
+        <span class="aid">${id}</span>
+        <span class="vs ${v.status}">${v.status}</span>
+      </div>
+      <div class="prog-bg"><div class="prog-fill" style="width:${v.progress||0}%"></div></div>
+      <div class="prog-info"><span>${v.speed||''}</span><span>${v.eta||''}</span></div>
+      <div class="s3path" style="margin-top:4px">→ <b>youtube/${v.channel||channelName}/</b>${id}.mp4</div>
+    </div>
+  `).join('');
+}
+
+// ── SSE progress stream ───────────────────────────────────────────────
+function connectSSE() {
+  const es = new EventSource('/api/progress');
+  es.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.ping) return;
+      (d.videos||[]).forEach(v => { if(v.status) progress[v.id||''] = v; });
+      renderList();
+      renderActive();
+      if ((d.videos||[]).some(v=>['downloading','uploading','queued'].includes(v.status))) {
+        document.getElementById('active-card').style.display='block';
+      }
+    } catch {}
+  };
+  es.onerror = () => setTimeout(connectSSE, 3000);
+}
+connectSSE();
+</script>
+</body>
+</html>
